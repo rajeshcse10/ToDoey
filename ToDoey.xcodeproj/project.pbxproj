@@ -59,15 +59,39 @@
 			isa = PBXGroup;
 			children = (
 				6D1147A8205C02D6003C9CBC /* AppDelegate.swift */,
-				6D1147AC205C02D6003C9CBC /* Main.storyboard */,
 				6D1147B2205C02D6003C9CBC /* Assets.xcassets */,
-				6D1147B4205C02D6003C9CBC /* LaunchScreen.storyboard */,
 				6D1147B7205C02D6003C9CBC /* Info.plist */,
+				6DC93C8F205C175F00074CC5 /* View */,
+				6DC93C8E205C174000074CC5 /* Controllers */,
+				6DC93C8D205C173300074CC5 /* Data Model */,
+			);
+			path = ToDoey;
+			sourceTree = "<group>";
+		};
+		6DC93C8D205C173300074CC5 /* Data Model */ = {
+			isa = PBXGroup;
+			children = (
 				6D1147AF205C02D6003C9CBC /* ToDoey.xcdatamodeld */,
+			);
+			path = "Data Model";
+			sourceTree = "<group>";
+		};
+		6DC93C8E205C174000074CC5 /* Controllers */ = {
+			isa = PBXGroup;
+			children = (
 				6D1147BD205C03C3003C9CBC /* CategoryTableViewController.swift */,
 				6D1147BF205C041C003C9CBC /* ItemTableViewController.swift */,
 			);
-			path = ToDoey;
+			path = Controllers;
+			sourceTree = "<group>";
+		};
+		6DC93C8F205C175F00074CC5 /* View */ = {
+			isa = PBXGroup;
+			children = (
+				6D1147B4205C02D6003C9CBC /* LaunchScreen.storyboard */,
+				6D1147AC205C02D6003C9CBC /* Main.storyboard */,
+			);
+			path = View;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

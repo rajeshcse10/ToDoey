@@ -9,11 +9,11 @@
 import UIKit
 import CoreData
 class ItemTableViewController: UITableViewController {
+    
+    @IBOutlet weak var searchBar: UISearchBar!
     var selectedCategory:Category?{
         didSet{
-            let request:NSFetchRequest<Item> = Item.fetchRequest()
-            request.predicate = NSPredicate(format: "itemToCategory.name MATCHES %@", selectedCategory!.name!)
-            loadData(with: request)
+            loadData()
         }
     }
     var itemArray = [Item]()
@@ -21,6 +21,7 @@ class ItemTableViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         //loadData()
+        searchBar.delegate = self
         addplusButtonToNavigationBar()
     }
     func addplusButtonToNavigationBar(){
@@ -113,7 +114,17 @@ class ItemTableViewController: UITableViewController {
             print("Save error : \(error)")
         }
     }
-    func loadData(with request:NSFetchRequest<Item> = Item.fetchRequest()){
+    func loadData(request:NSFetchRequest<Item> = Item.fetchRequest() ,with predicate:NSPredicate? = nil){
+        let request:NSFetchRequest<Item> = Item.fetchRequest()
+        let categoryPredicate = NSPredicate(format: "itemToCategory.name MATCHES %@", selectedCategory!.name!)
+        let compoudPredicate : NSCompoundPredicate
+        if let additionalPredicate = predicate{
+            compoudPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [additionalPredicate,categoryPredicate])
+        }
+        else{
+            compoudPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate])
+        }
+        request.predicate = compoudPredicate
         
         do{
             itemArray = try context.fetch(request)
@@ -121,5 +132,17 @@ class ItemTableViewController: UITableViewController {
             print("Fetching error : \(error)")
         }
         tableView.reloadData()
+    }
+}
+extension ItemTableViewController:UISearchBarDelegate{
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if searchText.count == 0{
+            loadData()
+        }
+        else{
+            let request:NSFetchRequest<Item> = Item.fetchRequest()
+            request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+            loadData(request: request,with: NSPredicate(format: "title CONTAINS[cd] %@", searchText))
+        }
     }
 }

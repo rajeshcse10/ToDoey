@@ -7,21 +7,18 @@
 //
 
 import UIKit
-import CoreData
+import RealmSwift
 class ItemTableViewController: UITableViewController {
-    
-    @IBOutlet weak var searchBar: UISearchBar!
+    let realm = try! Realm()
     var selectedCategory:Category?{
         didSet{
             loadData()
         }
     }
-    var itemArray = [Item]()
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    var itemArray:Results<ToDoItem>?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        //loadData()
-        searchBar.delegate = self
         addplusButtonToNavigationBar()
     }
     func addplusButtonToNavigationBar(){
@@ -35,14 +32,21 @@ class ItemTableViewController: UITableViewController {
             alertTextField = textField
         }
         let saveAction = UIAlertAction(title: "Save", style: .default) { (action) in
-            let item = Item(context: self.context)
-            item.title = alertTextField.text
-            item.done = false
-            item.itemToCategory = self.selectedCategory
-            self.itemArray.append(item)
-            self.saveData()
-            let indexPath = IndexPath(row: self.itemArray.count == 0 ? 0 : self.itemArray.count-1, section: 0)
-            self.tableView.insertRows(at: [indexPath], with: .automatic)
+            
+            if let currentCategory = self.selectedCategory{
+                do{
+                    let item = ToDoItem()
+                    item.title = alertTextField.text!
+                    item.done = false
+                    try self.realm.write {
+                        self.realm.add(item)
+                        currentCategory.items.append(item)
+                    }
+                }catch{
+                    print("Error in saving Item object : \(error)")
+                }
+            }
+            self.tableView.reloadData()
         }
         let cancelAction = UIAlertAction(title: "Cancel", style: .cancel, handler: nil)
         alert.addAction(saveAction)
@@ -58,34 +62,34 @@ class ItemTableViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         // #warning Incomplete implementation, return the number of rows
-        return itemArray.count
+        return itemArray!.count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "itemCell", for: indexPath)
-        if itemArray[indexPath.row].done == true{
+        if itemArray![indexPath.row].done == true{
             cell.accessoryType = .checkmark
         }
         else{
             cell.accessoryType = .none
         }
-        cell.textLabel?.text = itemArray[indexPath.row].title
+        cell.textLabel?.text = itemArray![indexPath.row].title
         return cell
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        if let cell = tableView.cellForRow(at: indexPath){
-            itemArray[indexPath.row].done = !itemArray[indexPath.row].done
-            if itemArray[indexPath.row].done == true{
-                cell.accessoryType = .checkmark
+        //let cell = tableView.cellForRow(at: indexPath)
+        if let item = itemArray?[indexPath.row]{
+            do{
+                try realm.write {
+                    item.done = !item.done
+                }
+            }catch{
+                print("Error in updating item : \(error)")
             }
-            else{
-                cell.accessoryType = .none
-            }
-            saveData()
-            tableView.deselectRow(at: indexPath, animated: true)
         }
-        
+        tableView.deselectRow(at: indexPath, animated: true)
+        tableView.reloadData()
     }
   
     // Override to support conditional editing of the table view.
@@ -99,50 +103,23 @@ class ItemTableViewController: UITableViewController {
     // Override to support editing the table view.
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCellEditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            // Delete the row from the data source
-            context.delete(itemArray[indexPath.row])
-            itemArray.remove(at: indexPath.row)
+            if let item = itemArray?[indexPath.row]{
+                do{
+                    try realm.write {
+                        realm.delete(item)
+                    }
+                }catch{
+                    print("Error in deleting item : \(error)")
+                }
+            }
             tableView.deleteRows(at: [indexPath], with: .fade)
         } else if editingStyle == .insert {
             // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
         }    
     }
-    func  saveData() {
-        do{
-            try context.save()
-        }catch{
-            print("Save error : \(error)")
-        }
-    }
-    func loadData(request:NSFetchRequest<Item> = Item.fetchRequest() ,with predicate:NSPredicate? = nil){
-        let request:NSFetchRequest<Item> = Item.fetchRequest()
-        let categoryPredicate = NSPredicate(format: "itemToCategory.name MATCHES %@", selectedCategory!.name!)
-        let compoudPredicate : NSCompoundPredicate
-        if let additionalPredicate = predicate{
-            compoudPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [additionalPredicate,categoryPredicate])
-        }
-        else{
-            compoudPredicate = NSCompoundPredicate(andPredicateWithSubpredicates: [categoryPredicate])
-        }
-        request.predicate = compoudPredicate
-        
-        do{
-            itemArray = try context.fetch(request)
-        }catch{
-            print("Fetching error : \(error)")
-        }
+    func loadData(){
+        itemArray = selectedCategory!.items.sorted(byKeyPath: "title", ascending: true)
         tableView.reloadData()
     }
 }
-extension ItemTableViewController:UISearchBarDelegate{
-    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-        if searchText.count == 0{
-            loadData()
-        }
-        else{
-            let request:NSFetchRequest<Item> = Item.fetchRequest()
-            request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-            loadData(request: request,with: NSPredicate(format: "title CONTAINS[cd] %@", searchText))
-        }
-    }
-}
+
